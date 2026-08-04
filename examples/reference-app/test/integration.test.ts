@@ -4,6 +4,10 @@
  * 登录 → notes CRUD → 搜索 → 详情 → 软删除 → capture → Agent 链路。
  */
 import { afterEach, describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
+import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { CoreRuntime } from "@atrium/core";
 import { AgentService } from "@atrium/mcp-host";
 import { notesAgentModule } from "@atrium/notes/agent";
@@ -21,14 +25,20 @@ interface TestContext {
 
 describe("reference app 端到端", () => {
   let ctx: TestContext | undefined;
+  const tempDirs: string[] = [];
 
   afterEach(async () => {
     await ctx?.app.close();
     ctx = undefined;
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   async function setup(): Promise<TestContext> {
-    const server = await buildReferenceServer();
+    const mirrorWorkDir = mkdtempSync(join(tmpdir(), "atrium-ref-mirror-"));
+    tempDirs.push(mirrorWorkDir);
+    const server = await buildReferenceServer({ mirrorWorkDir });
     ctx = server;
     return server;
   }
@@ -198,5 +208,80 @@ describe("reference app 端到端", () => {
       payload: { password: "atrium-dev-admin-password" },
     });
     expect(challenge.json()).toEqual({ data: { verified: true } });
+  });
+
+  it("数据镜像:管理员配置 → 创建便签 → 推送 → 远端可读", async () => {
+    const { app } = await setup();
+    // 本地裸仓库模拟远端。
+    const root = mkdtempSync(join(tmpdir(), "atrium-ref-remote-"));
+    tempDirs.push(root);
+    const remote = join(root, "remote.git");
+    execSync(`git init --bare -b main "${remote}"`, { stdio: "ignore" });
+
+    const cookie = await login(app);
+    await app.inject({
+      method: "POST",
+      url: "/api/core/auth/admin-challenge",
+      headers: { ...SAME_ORIGIN, cookie },
+      payload: { password: "atrium-dev-admin-password" },
+    });
+
+    const put = await app.inject({
+      method: "PUT",
+      url: "/api/core/admin/data-mirror/config",
+      headers: { ...SAME_ORIGIN, cookie },
+      payload: {
+        enabled: true,
+        repoUrl: remote,
+        branch: "main",
+        authType: "none",
+        schedule: "manual",
+      },
+    });
+    expect(put.statusCode).toBe(200);
+
+    // 创建一条便签(经模块 API)。
+    await app.inject({
+      method: "POST",
+      url: "/api/m/notes",
+      headers: { ...SAME_ORIGIN, cookie },
+      payload: { title: "镜像里的便签", body: "应该出现在远端" },
+    });
+
+    const run = await app.inject({
+      method: "POST",
+      url: "/api/core/admin/data-mirror/run",
+      headers: { ...SAME_ORIGIN, cookie },
+      payload: {},
+    });
+    expect(run.statusCode).toBe(200);
+    expect(run.json().data.status).toBe("success");
+    expect(run.json().data.commitCount).toBe(1);
+
+    // 克隆远端验证镜像内容。
+    const clone = join(root, "clone");
+    execSync(`git clone -q "${remote}" "${clone}"`, { stdio: "ignore" });
+    const notesJson = join(
+      clone,
+      "atrium-data",
+      "profiles",
+      "default",
+      "notes",
+      "notes.json",
+    );
+    expect(existsSync(notesJson)).toBe(true);
+    const parsed = JSON.parse(readFileSync(notesJson, "utf8")) as {
+      notes: Array<{ title: string }>;
+    };
+    expect(parsed.notes[0]?.title).toBe("镜像里的便签");
+
+    // 再次推送:无变化,不产生新提交。
+    const runAgain = await app.inject({
+      method: "POST",
+      url: "/api/core/admin/data-mirror/run",
+      headers: { ...SAME_ORIGIN, cookie },
+      payload: {},
+    });
+    expect(runAgain.json().data.commitCount).toBe(0);
   });
 });

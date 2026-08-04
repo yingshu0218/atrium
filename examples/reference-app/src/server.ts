@@ -13,6 +13,12 @@ import {
   registerModule,
 } from "@atrium/server-host";
 import type { ServerModule } from "@atrium/contracts";
+import {
+  DataMirrorEngine,
+  MirrorConfigStore,
+  MirrorHistory,
+} from "@atrium/data-mirror";
+import { join } from "node:path";
 import { notesServerModule } from "@atrium/notes/server";
 import { applicationConfig } from "../config/application.js";
 
@@ -24,12 +30,17 @@ export interface ReferenceServerOptions {
   adminPasswordHash?: string;
   /** 额外模块(默认仅 notes) */
   modules?: readonly ServerModule[];
+  /** 数据镜像 Git 工作目录(部署配置;缺省 env ATRIUM_MIRROR_WORKDIR 或 ./.data-mirror) */
+  mirrorWorkDir?: string;
 }
 
 export interface ReferenceServer {
   app: Awaited<ReturnType<typeof createServer>>;
   runtime: CoreRuntime;
   db: ReturnType<typeof openDatabase>;
+  mirrorConfigStore: MirrorConfigStore;
+  mirrorHistory: MirrorHistory;
+  mirrorEngine: DataMirrorEngine;
 }
 
 const DEV_PASSWORD = "atrium-dev-password";
@@ -76,6 +87,21 @@ export async function buildReferenceServer(
   const db = openDatabase(dbPath);
   const runtime = createCoreRuntime(db);
 
+  // 数据镜像(Server-only capability;AGENTS §19.1)。
+  const mirrorConfigStore = new MirrorConfigStore(runtime.config);
+  const mirrorHistory = new MirrorHistory(runtime.config);
+  const mirrorWorkDir =
+    options.mirrorWorkDir ??
+    process.env.ATRIUM_MIRROR_WORKDIR ??
+    join(process.cwd(), ".data-mirror");
+  const mirrorEngine = new DataMirrorEngine({
+    runtime,
+    modules: options.modules ?? [notesServerModule],
+    configStore: mirrorConfigStore,
+    history: mirrorHistory,
+    workDir: mirrorWorkDir,
+  });
+
   const app = await createServer({
     runtime,
     applicationId: applicationConfig.applicationId,
@@ -87,13 +113,19 @@ export async function buildReferenceServer(
     // 生产(HTTPS 反向代理后)必须设置 ATRIUM_COOKIE_SECURE=true,
     // 否则会话 cookie 不带 Secure 标记。
     cookieSecure: process.env.ATRIUM_COOKIE_SECURE === "true",
+    adminMirror: {
+      runtime,
+      engine: mirrorEngine,
+      configStore: mirrorConfigStore,
+      history: mirrorHistory,
+    },
   });
 
   for (const module of options.modules ?? [notesServerModule]) {
     await registerModule(app, runtime, module);
   }
 
-  return { app, runtime, db };
+  return { app, runtime, db, mirrorConfigStore, mirrorHistory, mirrorEngine };
 }
 
 /** 启动入口。 */
