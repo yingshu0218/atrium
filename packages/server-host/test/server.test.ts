@@ -454,3 +454,62 @@ describe("csrf", () => {
     }
   });
 });
+
+describe("agent token", () => {
+  it("agent-login with valid token creates a session", async () => {
+    const agentToken = "atrium-agent-token-123";
+    const { app, runtime } = await buildServer({
+      agentTokenHash: await hashPassword(agentToken),
+    });
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/core/auth/agent-login",
+        headers: SAME_ORIGIN,
+        payload: { token: agentToken },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ data: { profileId: "default" } });
+      expect(extractSessionCookie(res.headers["set-cookie"])).toBeTruthy();
+    } finally {
+      await app.close();
+      runtime.close();
+    }
+  });
+
+  it("agent-login rejects an invalid token", async () => {
+    const { app, runtime } = await buildServer({
+      agentTokenHash: await hashPassword("right-token"),
+    });
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/core/auth/agent-login",
+        headers: SAME_ORIGIN,
+        payload: { token: "wrong-token" },
+      });
+      expect(res.statusCode).toBe(401);
+      expect(res.json().error.code).toBe("unauthorized");
+    } finally {
+      await app.close();
+      runtime.close();
+    }
+  });
+
+  it("agent-login is disabled when agentTokenHash is not configured", async () => {
+    const { app, runtime } = await buildServer();
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/core/auth/agent-login",
+        headers: SAME_ORIGIN,
+        payload: { token: "anything" },
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json().error.code).toBe("forbidden");
+    } finally {
+      await app.close();
+      runtime.close();
+    }
+  });
+});

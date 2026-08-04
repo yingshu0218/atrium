@@ -34,7 +34,7 @@ export interface ServerOptions {
   authMode: AuthMode;
   passwordHash: string;
   adminPasswordHash: string;
-  /** Agent token 的存储哈希(预留;当前仅存储,不启用 token 认证)。 */
+  /** Agent token 的存储哈希;提供时启用 POST /api/core/auth/agent-login(AGENTS §13)。 */
   agentTokenHash?: string;
   /** CSRF 配置:无 Origin 头的写请求是否放行(非浏览器客户端)。 */
   csrf?: { skipWhenNoOrigin?: boolean };
@@ -49,6 +49,10 @@ const loginSchema = z.object({
 
 const adminChallengeSchema = z.object({
   password: z.string().min(1),
+});
+
+const agentLoginSchema = z.object({
+  token: z.string().min(1),
 });
 
 const DEFAULT_PROFILE = "default";
@@ -133,6 +137,36 @@ function registerCoreApi(
     }
     store.markAdminVerified(session.token);
     return { data: { verified: true } };
+  });
+
+  // Agent token 登录(AGENTS §13):token 只存哈希;换取普通会话(非 admin)。
+  // 未配置 agentTokenHash 时该端点不可用。
+  app.post("/api/core/auth/agent-login", async (request, reply) => {
+    if (options.agentTokenHash === undefined) {
+      throw new CoreError(
+        ERROR_CODES.FORBIDDEN,
+        "Agent token authentication is not enabled",
+      );
+    }
+    const parsed = agentLoginSchema.safeParse(request.body);
+    if (!parsed.success) {
+      throw parsed.error;
+    }
+    const tokenOk = await verifyPassword(
+      parsed.data.token,
+      options.agentTokenHash,
+    );
+    if (!tokenOk) {
+      throw new CoreError(ERROR_CODES.UNAUTHORIZED, "Invalid agent token");
+    }
+    const session = store.create(DEFAULT_PROFILE);
+    reply.setCookie(SESSION_COOKIE_NAME, session.token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: options.cookieSecure ?? false,
+      path: "/",
+    });
+    return { data: { profileId: DEFAULT_PROFILE } };
   });
 }
 

@@ -26,6 +26,8 @@ import type { CoreRuntime } from "@atrium/core";
 
 /** 默认分页条数(AGENTS.md §15:默认 limit 10)。 */
 export const DEFAULT_LIMIT = 10;
+/** Agent 单次返回上限(AGENTS §15:默认 limit 10,防客户端无限拉取)。 */
+export const MAX_LIMIT = 100;
 
 /** 业务错误对象形状(与 contracts 的 ApiErrorBody 对齐)。 */
 export interface AgentError {
@@ -152,7 +154,7 @@ export class AgentService {
   }
 
   async list(args: ListArgs): Promise<unknown> {
-    const limit = args.limit ?? DEFAULT_LIMIT;
+    const limit = Math.min(args.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
     const handlerArgs: Record<string, unknown> = { limit };
     if (args.cursor !== undefined) {
       handlerArgs.cursor = args.cursor;
@@ -200,7 +202,7 @@ export class AgentService {
 
   /** 聚合搜索:可选按 resourceType 过滤返回的命中。 */
   async search(args: SearchArgs): Promise<unknown> {
-    const limit = args.limit ?? DEFAULT_LIMIT;
+    const limit = Math.min(args.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
     const hits = await this.host.search.search(this.profileId, args.query, limit);
     if (args.resourceType !== undefined) {
       return hits.filter((hit) => hit.resourceType === args.resourceType);

@@ -36,12 +36,7 @@ async function createNote(ctx: AgentOperationContext): Promise<unknown> {
   for (const tag of input.tags ?? []) {
     await host.tags.add("note", row.id, tag);
   }
-  await host.audit.record({
-    action: "note.create",
-    source: "agent",
-    targetResourceType: "note",
-    targetResourceId: row.id,
-  });
+  // 审计统一由 AgentService(@atrium/mcp-host)记录并脱敏,模块层不重复记录。
   const note = noteRowToNote(
     row,
     await host.tags.listForResource("note", row.id),
@@ -103,12 +98,7 @@ async function updateNote(ctx: AgentOperationContext): Promise<unknown> {
       await ctx.host.tags.add("note", id, tag);
     }
   }
-  await ctx.host.audit.record({
-    action: "note.update",
-    source: "agent",
-    targetResourceType: "note",
-    targetResourceId: id,
-  });
+  // 审计由 AgentService 层统一记录。
   const tags = await ctx.host.tags.listForResource("note", id);
   return noteRowToNote(row, tags);
 }
@@ -116,12 +106,7 @@ async function updateNote(ctx: AgentOperationContext): Promise<unknown> {
 async function deleteNote(ctx: AgentOperationContext): Promise<unknown> {
   const id = String(ctx.args.id ?? "");
   await ctx.host.scopedDb.softDelete(NOTES_TABLE, id);
-  await ctx.host.audit.record({
-    action: "note.delete",
-    source: "agent",
-    targetResourceType: "note",
-    targetResourceId: id,
-  });
+  // 审计由 AgentService 层统一记录。
   return { deleted: true, id };
 }
 

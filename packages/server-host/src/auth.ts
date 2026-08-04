@@ -13,12 +13,18 @@ import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 export const SESSION_COOKIE_NAME = "atrium_session";
 
 const SCRYPT_PREFIX = "scrypt$";
-const SCRYPT_N = 16384;
+// OWASP 推荐 scrypt N=2^17(仅影响新哈希;旧哈希按存储参数校验)。
+const SCRYPT_N = 131072;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const KEY_LENGTH = 32;
 const SALT_LENGTH = 16;
 const TOKEN_LENGTH = 32;
+
+/** 会话默认有效期(30 天)。 */
+const DEFAULT_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** adminVerified 默认有效期(15 分钟,敏感操作需周期性重新验证)。 */
+const DEFAULT_ADMIN_TTL_MS = 15 * 60 * 1000;
 
 /** 已认证会话(与 profile 绑定)。 */
 export interface Session {
@@ -26,12 +32,21 @@ export interface Session {
   profileId: string;
   adminVerified: boolean;
   createdAt: string;
+  /** 会话过期时间(ISO-8601 UTC);过期后会话失效。 */
+  expiresAt: string;
+  /** adminVerified 的过期时间;null 表示未验证或已过期。 */
+  adminExpiresAt: string | null;
+}
+
+export interface SessionStoreOptions {
+  sessionTtlMs?: number;
+  adminTtlMs?: number;
 }
 
 export interface SessionStore {
   /** 创建会话并返回会话对象。 */
   create(profileId: string): Session;
-  /** 按 token 查询会话;不存在或已撤销返回 undefined。 */
+  /** 按 token 查询会话;不存在、已撤销或已过期返回 undefined;admin 过期自动降级。 */
   get(token: string): Session | undefined;
   /** 逐设备撤销:删除指定 token 的会话。 */
   revoke(token: string): void;
@@ -57,21 +72,45 @@ export function generateSessionToken(): string {
 }
 
 /** 内存会话存储。 */
-export function createSessionStore(): SessionStore {
+export function createSessionStore(
+  options: SessionStoreOptions = {},
+): SessionStore {
+  const sessionTtlMs = options.sessionTtlMs ?? DEFAULT_SESSION_TTL_MS;
+  const adminTtlMs = options.adminTtlMs ?? DEFAULT_ADMIN_TTL_MS;
   const sessions = new Map<string, Session>();
   return {
     create(profileId: string): Session {
+      const now = Date.now();
       const session: Session = {
         token: generateSessionToken(),
         profileId,
         adminVerified: false,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + sessionTtlMs).toISOString(),
+        adminExpiresAt: null,
       };
       sessions.set(session.token, session);
       return session;
     },
     get(token: string): Session | undefined {
-      return sessions.get(token);
+      const session = sessions.get(token);
+      if (session === undefined) {
+        return undefined;
+      }
+      if (Date.parse(session.expiresAt) <= Date.now()) {
+        sessions.delete(token);
+        return undefined;
+      }
+      // admin 验证过期后自动降级为普通会话,避免一次验证永久有效。
+      if (
+        session.adminVerified &&
+        session.adminExpiresAt !== null &&
+        Date.parse(session.adminExpiresAt) <= Date.now()
+      ) {
+        session.adminVerified = false;
+        session.adminExpiresAt = null;
+      }
+      return session;
     },
     revoke(token: string): void {
       sessions.delete(token);
@@ -89,6 +128,9 @@ export function createSessionStore(): SessionStore {
         return false;
       }
       session.adminVerified = true;
+      session.adminExpiresAt = new Date(
+        Date.now() + adminTtlMs,
+      ).toISOString();
       return true;
     },
   };
@@ -100,14 +142,23 @@ function scryptAsync(
   keylen: number,
   options: { N: number; r: number; p: number },
 ): Promise<Buffer> {
+  // OpenSSL 默认 maxmem=32MiB;N=2^17、r=8 需要 128*N*r=128MiB,
+  // 显式放宽(2 倍余量)以支持 OWASP 推荐参数。
+  const maxmem = 128 * options.N * options.r * 2;
   return new Promise((resolve, reject) => {
-    scryptCb(password, salt, keylen, options, (err, derivedKey) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(derivedKey);
-    });
+    scryptCb(
+      password,
+      salt,
+      keylen,
+      { ...options, maxmem },
+      (err, derivedKey) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(derivedKey);
+      },
+    );
   });
 }
 

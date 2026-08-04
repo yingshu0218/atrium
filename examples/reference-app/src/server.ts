@@ -84,6 +84,9 @@ export async function buildReferenceServer(
     authMode: applicationConfig.authMode,
     passwordHash,
     adminPasswordHash,
+    // 生产(HTTPS 反向代理后)必须设置 ATRIUM_COOKIE_SECURE=true,
+    // 否则会话 cookie 不带 Secure 标记。
+    cookieSecure: process.env.ATRIUM_COOKIE_SECURE === "true",
   });
 
   for (const module of options.modules ?? [notesServerModule]) {

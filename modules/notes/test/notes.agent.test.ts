@@ -55,7 +55,7 @@ describe("notes agent module", () => {
     }
   });
 
-  it("create 创建便签并返回行 + 短 ID,记录 audit(source=agent)", async () => {
+  it("create 创建便签并返回行 + 短 ID;审计由 AgentService 层负责,模块层不重复记录", async () => {
     const ctx = setup();
     const created = (await run(ctx, "create:note", {
       input: { title: "agent note", body: "from mcp", tags: ["x"] },
@@ -73,16 +73,12 @@ describe("notes agent module", () => {
     });
     expect(created.id).toMatch(UUID_V7_PATTERN);
 
+    // AgentService(@atrium/mcp-host)统一记录 agent 审计并脱敏;
+    // 模块层直接调用 handlers 时不产生审计,避免双重记录。
     const auditRows = ctx.db
       .prepare("SELECT * FROM audit_log")
       .all() as Record<string, unknown>[];
-    expect(auditRows).toHaveLength(1);
-    expect(auditRows[0]).toMatchObject({
-      action: "note.create",
-      source: "agent",
-      target_resource_type: "note",
-      profile_id: "profile-1",
-    });
+    expect(auditRows).toHaveLength(0);
   });
 
   it("list 返回 items(默认未归档,limit 生效)", async () => {

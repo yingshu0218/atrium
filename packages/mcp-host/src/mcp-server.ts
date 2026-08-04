@@ -10,6 +10,7 @@
  */
 import { AGENT_TOOLS } from "@atrium/contracts";
 import type { AgentToolName } from "@atrium/contracts";
+import { CoreError } from "@atrium/core";
 import * as readline from "node:readline";
 import {
   stderr as processStderr,
@@ -23,7 +24,6 @@ import {
   serialize,
   successResponse,
 } from "./protocol.js";
-import type { ErrorObject } from "./protocol.js";
 
 /** 对外声明:与 MCP 客户端协商的协议版本。 */
 export const PROTOCOL_VERSION = "2024-11-05";
@@ -357,7 +357,15 @@ export function createMcpServer(agentService: AgentService): McpServer {
       return successResponse(id, result);
     } catch (err) {
       if (err instanceof JsonRpcError) {
-        return errorResponse(id, { code: err.code, message: err.message } satisfies ErrorObject);
+        return errorResponse(id, { code: err.code, message: err.message });
+      }
+      // 模块 handler 抛出的业务错误(如 ScopedDb notFound)映射为
+      // JSON-RPC 服务器错误,并把稳定错误码带给调用方。
+      if (err instanceof CoreError) {
+        return errorResponse(id, {
+          code: -32000,
+          message: `${err.code}: ${err.message}`,
+        });
       }
       return errorResponse(id, { code: -32603, message: "internal error" });
     }

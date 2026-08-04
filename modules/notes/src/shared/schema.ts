@@ -67,7 +67,16 @@ export const relationCreateSchema = z.object({
 
 /** 附件元数据登记输入(内容存储由 core 负责,后续阶段实现)。 */
 export const attachmentCreateSchema = z.object({
-  filename: z.string().min(1).max(255),
+  // 文件名安全校验(AGENTS §12:上传必须校验文件名;拒绝路径分隔符与 . / ..)
+  filename: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(
+      /^[^/\\\u0000-\u001f]+$/,
+      "文件名不能包含路径分隔符或控制字符",
+    )
+    .refine((value) => value !== "." && value !== "..", "非法文件名"),
   mimeType: z.string().min(1).max(200),
   sizeBytes: z.number().int().min(0).max(10 * 1024 * 1024 * 1024),
 });

@@ -135,14 +135,18 @@ async function handleUpdate(
   // update 未命中时 ScopedDb 抛 notFound。
   const row = await host.scopedDb.update<NoteRow>(NOTES_TABLE, id, patch);
 
-  if (body.tags !== undefined) {
-    const current = await host.tags.listForResource("note", id);
-    for (const tag of current) {
-      await host.tags.remove("note", id, tag);
-    }
-    for (const tag of body.tags) {
-      await host.tags.add("note", id, tag);
-    }
+  const tagsToSet = body.tags;
+  if (tagsToSet !== undefined) {
+    // 标签替换在事务内执行,避免中途失败留下不一致状态。
+    await host.scopedDb.transaction(async () => {
+      const current = await host.tags.listForResource("note", id);
+      for (const tag of current) {
+        await host.tags.remove("note", id, tag);
+      }
+      for (const tag of tagsToSet) {
+        await host.tags.add("note", id, tag);
+      }
+    });
   }
   await host.audit.record({
     action: "note.update",
