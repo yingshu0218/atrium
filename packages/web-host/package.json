@@ -6,16 +6,25 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=22"
+  "files": ["dist"],
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@atrium/contracts": "workspace:*",
+    "@atrium/core": "workspace:*",
+    "@atrium/theme": "workspace:*",
+    "@atrium/ui": "workspace:*",
+    "@tanstack/react-query": "^5.101.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.18.0",
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
   }
 }

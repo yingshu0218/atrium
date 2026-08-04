@@ -17,5 +17,14 @@
   ],
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@atrium/contracts": "workspace:*",
+    "@atrium/theme": "workspace:*",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@testing-library/react": "^16.0.0"
   }
 }

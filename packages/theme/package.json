@@ -6,16 +6,15 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=22"
-  }
+  "files": ["dist"],
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@atrium/contracts": "workspace:*",
+    "lucide-react": "^1.28.0",
+    "react": "^19.2.0"
+  },
+  "devDependencies": { "@types/react": "^19.0.0" }
 }
