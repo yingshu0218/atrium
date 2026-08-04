@@ -23,6 +23,8 @@ import {
   verifyPassword,
 } from "./auth.js";
 import type { Session, SessionStore } from "./auth.js";
+import { registerAdminMirrorApi } from "./admin-mirror.js";
+import type { AdminMirrorDeps } from "./admin-mirror.js";
 import { errorStatusCode, toEnvelopeError } from "./errors.js";
 import { createCsrfGuard } from "./csrf.js";
 
@@ -40,6 +42,8 @@ export interface ServerOptions {
   csrf?: { skipWhenNoOrigin?: boolean };
   /** 会话 cookie 是否带 Secure 标记(生产由 env 配置传入,如 ATRIUM_COOKIE_SECURE)。 */
   cookieSecure?: boolean;
+  /** 数据镜像管理员能力(提供后启用 /api/core/admin/data-mirror/*,AGENTS §5.8)。 */
+  adminMirror?: AdminMirrorDeps;
 }
 
 const loginSchema = z.object({
@@ -211,5 +215,8 @@ export async function createServer(
   });
 
   registerCoreApi(app, options, store);
+  if (options.adminMirror !== undefined) {
+    registerAdminMirrorApi(app, options.adminMirror);
+  }
   return app;
 }

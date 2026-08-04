@@ -43,6 +43,7 @@ import {
 import { createApiClient, type ApiClient } from "./api-client.js";
 import { AuthProvider, useAuth } from "./auth-context.js";
 import { ThemeProvider, useTheme } from "./theme-context.js";
+import { DataMirrorSettingsPage } from "./admin-settings/data-mirror-page.js";
 
 export interface CreateWebAppOptions {
   config: ApplicationConfig;
@@ -119,6 +120,7 @@ export function createWebApp(options: CreateWebAppOptions): () => ReactNode {
         <Card title="设置">
           <p>系统设置。</p>
         </Card>
+        <DataMirrorSettingsPage />
       </div>
     );
   }

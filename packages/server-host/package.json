@@ -6,16 +6,24 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
     "./package.json": "./package.json"
   },
-  "files": ["dist"],
-  "engines": { "node": ">=22" },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@atrium/contracts": "workspace:*",
     "@atrium/core": "workspace:*",
     "@fastify/cookie": "^11.1.0",
     "fastify": "^5.11.0",
-    "zod": "^4.4.0"
+    "zod": "^4.4.0",
+    "@atrium/data-mirror": "workspace:*"
   }
 }

@@ -32,3 +32,6 @@ export { toEnvelopeError, errorStatusCode } from "./errors.js";
 export { FastifyRouteRegistrar, assertValidModuleId } from "./route-registrar.js";
 
 export { registerModule } from "./module-loader.js";
+
+export { registerAdminMirrorApi } from "./admin-mirror.js";
+export type { AdminMirrorDeps } from "./admin-mirror.js";
