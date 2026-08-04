@@ -109,6 +109,11 @@ export class FastifyRouteRegistrar implements RouteRegistrar {
   /** 相对 /api/m/{moduleId} 的路径拼成完整 URL。 */
   #buildUrl(path: string): string {
     const normalized = path.startsWith("/") ? path : `/${path}`;
+    // 模块根路径 "/" 直接挂载到 /api/m/{moduleId},避免尾斜杠歧义
+    // (fastify 默认区分 /api/m/notes 与 /api/m/notes/)。
+    if (normalized === "/") {
+      return `/api/m/${this.#moduleId}`;
+    }
     return `/api/m/${this.#moduleId}${normalized}`;
   }
 }

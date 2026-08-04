@@ -5,7 +5,12 @@
  */
 import type { SemanticIconKey } from "./theme.js";
 import type { ResourceDescriptor, AgentOperationName } from "./resource.js";
-import type { HostContext, RouteRegistrar } from "./host.js";
+import type {
+  HostContext,
+  RouteRegistrar,
+  SearchProvider,
+  CaptureHandler,
+} from "./host.js";
 import type { DataMirrorExporter } from "./mirror.js";
 
 /** 模块能力名称 */
@@ -44,7 +49,15 @@ export interface WebRouteDefinition {
 /** 模块服务端入口(PRD §11.6 / AGENTS §6) */
 export interface ServerModule {
   metadata: ModuleMetadata;
-  /** 注册路由、资源、搜索 provider、迁移、capture 等 */
+  /** 声明式资源注册(也可在 register 中通过 host.resources 注册) */
+  resources?: readonly ResourceDescriptor[];
+  /** 顺序迁移(由宿主执行,幂等;AGENTS §7:安装即允许迁移) */
+  migrations?: readonly ModuleMigration[];
+  /** 搜索 provider(host 负责注册到聚合 SearchService) */
+  searchProvider?: SearchProvider;
+  /** capture handler(host 负责注册到聚合 CaptureService) */
+  captureHandler?: CaptureHandler;
+  /** 注册路由、服务等 */
   register(context: ServerModuleContext): void | Promise<void>;
   /** 可选数据镜像 exporter(只存在于服务端入口) */
   dataMirrorExporter?: DataMirrorExporter;

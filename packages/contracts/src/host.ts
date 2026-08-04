@@ -191,7 +191,9 @@ export interface SearchProvider {
   search(
     profileId: string,
     query: string,
-    limit: number
+    limit: number,
+    /** 绑定该 profile 的受限访问上下文 */
+    host: HostContext,
   ): Promise<SearchHit[]>;
 }
 
@@ -217,7 +219,9 @@ export interface CaptureHandler {
   resourceType: string;
   capture(
     profileId: string,
-    input: { text: string; meta?: Readonly<Record<string, unknown>> }
+    input: { text: string; meta?: Readonly<Record<string, unknown>> },
+    /** 绑定该 profile 的受限访问上下文 */
+    host: HostContext,
   ): Promise<{ resourceId: string; shortId: string }>;
 }
 

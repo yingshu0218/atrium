@@ -2,6 +2,9 @@
  * @atrium/server-host — 模块注册。
  *
  * registerModule 把模块服务端入口接入宿主:
+ * - 声明式字段:resources 注册到 runtime.resources;searchProvider /
+ *   captureHandler 注册到 runtime.search / runtime.capture;migrations
+ *   由 runtime.runMigrations 执行(幂等,AGENTS.md §7 安装即允许迁移);
  * - 调用 module.register(context),context.host 提供默认 profile 的
  *   HostContext(请求期 host 由 route-registrar 按会话动态创建),
  *   context.routes 把路由挂载到 /api/m/{moduleId};
@@ -23,6 +26,18 @@ export async function registerModule(
   runtime: CoreRuntime,
   module: ServerModule,
 ): Promise<void> {
+  for (const resource of module.resources ?? []) {
+    runtime.resources.register(resource);
+  }
+  if (module.searchProvider) {
+    runtime.search.register(module.searchProvider);
+  }
+  if (module.captureHandler) {
+    runtime.capture.register(module.captureHandler);
+  }
+  if (module.migrations && module.migrations.length > 0) {
+    runtime.runMigrations(module.metadata.id, module.migrations);
+  }
   const routes = new FastifyRouteRegistrar(
     fastify,
     runtime,

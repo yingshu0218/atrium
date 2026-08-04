@@ -66,8 +66,10 @@ export function createCoreRuntime(db: SqliteDatabase): CoreRuntime {
 
   const ids: IdService = new IdServiceImpl(db);
   const resources: ResourceRegistry = new ResourceRegistryImpl();
-  const search: SearchService = new SearchServiceImpl();
-  const capture: CaptureService = new CaptureServiceImpl();
+  const hostFor = (profileId: string, opts?: { adminVerified?: boolean }) =>
+    createHostContext(bundle, profileId, opts);
+  const search: SearchService = new SearchServiceImpl({ hostFor });
+  const capture: CaptureService = new CaptureServiceImpl({ hostFor });
   const config: ConfigService = new ConfigServiceImpl(db);
   const migrations = new MigrationRunner(db);
 
@@ -85,7 +87,7 @@ export function createCoreRuntime(db: SqliteDatabase): CoreRuntime {
   };
 
   return {
-    hostFor: (profileId, opts) => createHostContext(bundle, profileId, opts),
+    hostFor,
     scopedDbFor: bundle.scopedDbFor,
     ids,
     resources,
