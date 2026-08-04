@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* 主题 CSS 变量由 web-host 的 ThemeProvider 注入 documentElement。
+   这里声明 color-scheme,让默认主题的 light-dark() 色值按系统偏好生效。 */
+:root {
+  color-scheme: light dark;
+}

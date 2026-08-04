@@ -1,42 +1,20 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist"
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src", "config", "test"],
   "references": [
-    {
-      "path": "../../packages/contracts"
-    },
-    {
-      "path": "../../packages/core"
-    },
-    {
-      "path": "../../packages/theme"
-    },
-    {
-      "path": "../../packages/ui"
-    },
-    {
-      "path": "../../packages/server-host"
-    },
-    {
-      "path": "../../packages/web-host"
-    },
-    {
-      "path": "../../packages/mcp-host"
-    },
-    {
-      "path": "../../packages/desktop-host"
-    },
-    {
-      "path": "../../packages/data-mirror"
-    },
-    {
-      "path": "../../modules/notes"
-    }
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/core" },
+    { "path": "../../packages/theme" },
+    { "path": "../../packages/ui" },
+    { "path": "../../packages/server-host" },
+    { "path": "../../packages/web-host" },
+    { "path": "../../packages/mcp-host" },
+    { "path": "../../packages/desktop-host" },
+    { "path": "../../packages/data-mirror" },
+    { "path": "../../modules/notes" }
   ]
 }

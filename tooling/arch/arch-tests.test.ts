@@ -28,7 +28,8 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 interface WorkspacePackage {
   name: string;
   dir: string;
-  srcDir: string;
+  /** 相对路径必须停留在的源码目录列表(默认 [src];应用结构如 reference-app 含 config/) */
+  sourceDirs: string[];
 }
 
 interface Violation {
@@ -100,7 +101,14 @@ function collectPackages(): WorkspacePackage[] {
       const { name } = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as {
         name: string;
       };
-      packages.push({ name, dir, srcDir: join(dir, "src") });
+      const srcDir = join(dir, "src");
+      // 应用(如 reference-app)按 AGENTS §18 结构把 config/ 放在包根,
+      // 属于应用源码的一部分,允许相对引用。
+      const sourceDirs =
+        name === "@atrium/reference-app"
+          ? [srcDir, join(dir, "config")]
+          : [srcDir];
+      packages.push({ name, dir, sourceDirs });
     }
   }
   return packages;
@@ -122,7 +130,8 @@ function collectViolations(packages: WorkspacePackage[]): Violation[] {
       continue;
     }
 
-    for (const file of listTsFiles(pkg.srcDir)) {
+    for (const sourceDir of pkg.sourceDirs) {
+      for (const file of listTsFiles(sourceDir)) {
       const sourceText = readFileSync(file, "utf8");
       const sourceFile = createSourceFile(file, sourceText, ScriptTarget.Latest, true);
 
@@ -139,12 +148,15 @@ function collectViolations(packages: WorkspacePackage[]): Violation[] {
       for (const specifier of specifiers) {
         if (specifier.startsWith(".")) {
           const resolved = resolve(dirname(file), specifier);
-          if (!resolved.startsWith(pkg.srcDir + sep)) {
+          const insideSource = pkg.sourceDirs.some((dir) =>
+            resolved.startsWith(dir + sep),
+          );
+          if (!insideSource) {
             violations.push({
               file,
               specifier,
               kind: "relative-escape",
-              detail: `相对路径逃逸出包目录,必须改为包名引用(遵守 package exports)`,
+              detail: `相对路径逃逸出包源码目录,必须改为包名引用(遵守 package exports)`,
             });
           }
           continue;
@@ -170,13 +182,13 @@ function collectViolations(packages: WorkspacePackage[]): Violation[] {
             });
           }
         }
+          }
+        }
       }
     }
-  }
 
   return violations;
 }
-
 function moduleSpecifier(node: ImportDeclaration): string {
   const spec = node.moduleSpecifier;
   if (isStringLiteral(spec)) return spec.text;
