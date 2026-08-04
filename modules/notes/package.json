@@ -7,6 +7,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./shared": { "types": "./dist/shared/index.d.ts", "import": "./dist/shared/index.js" },
+    "./server": { "types": "./dist/server/index.d.ts", "import": "./dist/server/index.js" },
+    "./web": { "types": "./dist/web/index.d.ts", "import": "./dist/web/index.js" },
+    "./agent": { "types": "./dist/agent/index.d.ts", "import": "./dist/agent/index.js" },
+    "./offline": { "types": "./dist/offline/index.d.ts", "import": "./dist/offline/index.js" },
+    "./migrations": { "types": "./dist/migrations/index.d.ts", "import": "./dist/migrations/index.js" },
     "./package.json": "./package.json"
   },
   "files": ["dist"],
@@ -20,9 +26,12 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.84.0",
+    "react-router-dom": "^7.0.0",
     "zod": "^4.4.0"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0"
   }
