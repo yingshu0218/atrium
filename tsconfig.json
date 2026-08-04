@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/contracts" },
+    { "path": "./packages/core" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/theme" },
+    { "path": "./packages/server-host" },
+    { "path": "./packages/web-host" },
+    { "path": "./packages/desktop-host" },
+    { "path": "./packages/mcp-host" },
+    { "path": "./packages/data-mirror" },
+    { "path": "./modules/notes" },
+    { "path": "./examples/reference-app" }
+  ]
+}
