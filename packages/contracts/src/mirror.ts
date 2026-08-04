@@ -2,7 +2,7 @@
  * 可读数据镜像契约(PRD §20 / AGENTS §19)。
  * exporter 只存在于模块服务端入口;Data Mirror Engine 只调用已启用模块的 exporter。
  */
-import type { ScopedDb, Logger } from "./host.js";
+import type { ScopedDb, Logger, IdService, TagService } from "./host.js";
 
 /** exporter 输出文件格式 */
 export type ExportedFileFormat = "markdown" | "json" | "csv" | "text";
@@ -24,6 +24,10 @@ export interface ExportContext {
   dataDir: string;
   /** 受限只读访问(自动 profile scope + soft delete) */
   scopedDb: ScopedDb;
+  /** 短 ID 服务(对外标识用短 ID,AGENTS §9) */
+  ids: IdService;
+  /** 标签查询(绑定当前 profile) */
+  tags: TagService;
   log: Logger;
 }
 

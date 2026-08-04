@@ -153,7 +153,21 @@ importers:
         specifier: ^7.6.0
         version: 7.6.13
 
-  packages/data-mirror: {}
+  packages/data-mirror:
+    dependencies:
+      '@atrium/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@atrium/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@atrium/notes':
+        specifier: workspace:*
+        version: link:../../modules/notes
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
 
   packages/desktop-host: {}
 
@@ -174,6 +188,9 @@ importers:
       '@atrium/core':
         specifier: workspace:*
         version: link:../core
+      '@atrium/data-mirror':
+        specifier: workspace:*
+        version: link:../data-mirror
       '@fastify/cookie':
         specifier: ^11.1.0
         version: 11.1.2

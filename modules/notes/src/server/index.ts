@@ -11,6 +11,7 @@ import type {
 import { notesManifest } from "../manifest.js";
 import { notesMigrations } from "../migrations/index.js";
 import { noteResourceDescriptor } from "../shared/schema.js";
+import { notesMirrorExporter } from "./mirror-exporter.js";
 import {
   noteMatchesQuery,
   truncate,
@@ -84,6 +85,7 @@ export const notesServerModule: ServerModule = {
   migrations: notesMigrations,
   searchProvider: noteSearchProvider,
   captureHandler: noteCaptureHandler,
+  dataMirrorExporter: notesMirrorExporter,
   register(context) {
     for (const route of noteRoutes) {
       context.routes.register(route);

@@ -17,5 +17,13 @@
   ],
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@atrium/contracts": "workspace:*",
+    "@atrium/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@atrium/notes": "workspace:*",
+    "@types/node": "^22.10.0"
   }
 }
