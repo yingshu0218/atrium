@@ -2,7 +2,8 @@
 
 Atrium 是一个面向多个独立工作台应用的通用框架，以及一组可选的官方通用模块。
 
-> 当前状态：架构与需求设计阶段，尚未进入正式代码实现。
+> 当前状态：框架核心已实现（contracts / core / 各宿主 / notes 模块 / 数据镜像垂直切片），
+> 见下方"当前实现进度"。应用模板与部署文档见 `templates/workbench-app` 与 `docs/`。
 
 ## 项目目标
 
@@ -239,13 +240,14 @@ atrium/
 
 第一阶段不追求一次性交付完整工作台，目标是建立可验证的最小闭环：
 
-1. monorepo 与工程守卫；
-2. 共享契约和受限数据访问；
-3. Server/Web/MCP 宿主；
-4. 官方便签模块；
-5. 服务端可读数据镜像垂直切片；
-6. 应用模板；
-7. reference app 集成验证；
-8. 包发布与应用版本锁定。
+1. ✅ monorepo 与工程守卫（架构依赖测试 + ESLint 双层拦截）；
+2. ✅ 共享契约和受限数据访问（`@atrium/contracts` / `@atrium/core`）；
+3. ✅ Server/Web/MCP 宿主（`server-host` / `web-host` / `mcp-host`）；
+4. ✅ 官方便签模块（`@atrium/notes` 垂直切片）；
+5. ✅ 服务端可读数据镜像垂直切片（`@atrium/data-mirror` + 管理员 API/UI）；
+6. ✅ 应用模板（`templates/workbench-app` + 部署/备份文档）；
+7. ✅ reference app 集成验证（`examples/reference-app`，含端到端测试）；
+8. ⏳ 包发布与应用版本锁定（策略已定：统一版本，见 `docs/adr/ADR-0002.md`；
+   发布流程待第一个独立应用接入时执行）。
 
 完成后，个人工作台将作为第一个独立应用仓库接入 Atrium。
