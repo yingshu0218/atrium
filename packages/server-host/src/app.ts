@@ -44,6 +44,8 @@ export interface ServerOptions {
   cookieSecure?: boolean;
   /** 数据镜像管理员能力(提供后启用 /api/core/admin/data-mirror/*,AGENTS §5.8)。 */
   adminMirror?: AdminMirrorDeps;
+  /** 会话存储实现(缺省为内存存储;生产建议注入 SQLite 持久化存储)。 */
+  sessionStore?: SessionStore;
 }
 
 const loginSchema = z.object({
@@ -177,10 +179,10 @@ function registerCoreApi(
 export async function createServer(
   options: ServerOptions,
 ): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, ignoreTrailingSlash: true });
   await app.register(cookie);
 
-  const store = createSessionStore();
+  const store = options.sessionStore ?? createSessionStore();
   app.decorateRequest("session", null as Session | null);
 
   // 每个请求解析会话 cookie。
@@ -190,9 +192,21 @@ export async function createServer(
   });
 
   // CSRF:写操作校验 Origin 与 Host 同源(无 Origin 默认拒绝)。
-  const csrfGuard = createCsrfGuard(options.csrf);
+  // 凭证在 body、不依赖会话 cookie 的认证端点豁免 CSRF(见 csrf.ts 注释)。
+  const CSRF_EXEMPT_PATHS = [
+    "/api/core/auth/login",
+    "/api/core/auth/agent-login",
+  ] as const;
+  const csrfGuard = createCsrfGuard({
+    ...options.csrf,
+    exemptPaths: CSRF_EXEMPT_PATHS,
+  });
   app.addHook("onRequest", async (request) => {
-    const verdict = csrfGuard(request);
+    const verdict = csrfGuard({
+      method: request.method,
+      url: request.url,
+      headers: request.headers,
+    });
     if (!verdict.ok) {
       throw new CoreError(verdict.code, verdict.message);
     }

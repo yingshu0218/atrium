@@ -42,6 +42,7 @@ export function isSameOrigin(
 
 export interface CsrfGuardRequest {
   method: string;
+  url: string;
   headers: {
     origin?: string | string[] | undefined;
     host?: string | string[] | undefined;
@@ -55,6 +56,12 @@ export type CsrfVerdict =
 export interface CsrfOptions {
   /** 无 Origin 头时放行(非浏览器客户端,如脚本 / MCP / 未来 agent token 场景)。 */
   skipWhenNoOrigin?: boolean;
+  /**
+   * 豁免 CSRF 的路径前缀(如 /api/core/auth/login、/api/core/auth/agent-login)。
+   * 仅用于凭证在 body、不依赖会话 cookie 的认证端点:攻击者无法预知凭证,
+   * CSRF 无法利用,且这类端点必须能被非浏览器客户端调用。
+   */
+  exemptPaths?: readonly string[];
 }
 
 function firstHeader(value: string | string[] | undefined): string | undefined {
@@ -70,6 +77,9 @@ export function createCsrfGuard(
 ): (request: CsrfGuardRequest) => CsrfVerdict {
   return (request: CsrfGuardRequest): CsrfVerdict => {
     if (!isWriteMethod(request.method)) {
+      return { ok: true };
+    }
+    if (options.exemptPaths?.some((path) => request.url.startsWith(path))) {
       return { ok: true };
     }
     const origin = firstHeader(request.headers.origin);

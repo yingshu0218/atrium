@@ -389,10 +389,10 @@ describe("csrf", () => {
   it("rejects state-changing requests without Origin header", async () => {
     const { app, runtime } = await buildServer();
     try {
+      // 用非豁免的写端点(logout)验证 CSRF;login/agent-login 因凭证在 body 被豁免。
       const res = await app.inject({
         method: "POST",
-        url: "/api/core/auth/login",
-        payload: { password: PASSWORD },
+        url: "/api/core/auth/logout",
       });
       expect(res.statusCode).toBe(403);
       expect(res.json()).toMatchObject({
@@ -409,9 +409,8 @@ describe("csrf", () => {
     try {
       const res = await app.inject({
         method: "POST",
-        url: "/api/core/auth/login",
+        url: "/api/core/auth/logout",
         headers: { host: "localhost", origin: "http://evil.example" },
-        payload: { password: PASSWORD },
       });
       expect(res.statusCode).toBe(403);
       expect(res.json()).toMatchObject({
@@ -507,6 +506,33 @@ describe("agent token", () => {
       });
       expect(res.statusCode).toBe(403);
       expect(res.json().error.code).toBe("forbidden");
+    } finally {
+      await app.close();
+      runtime.close();
+    }
+  });
+
+  it("agent-login 与 login 豁免 CSRF(无 Origin 也可调用,凭证在 body)", async () => {
+    const agentToken = "atrium-agent-token-no-origin";
+    const { app, runtime } = await buildServer({
+      agentTokenHash: await hashPassword(agentToken),
+    });
+    try {
+      // 无 Origin 头(非浏览器客户端,如 MCP 进程)。
+      const login = await app.inject({
+        method: "POST",
+        url: "/api/core/auth/login",
+        payload: { password: PASSWORD },
+      });
+      expect(login.statusCode).toBe(200);
+
+      const agent = await app.inject({
+        method: "POST",
+        url: "/api/core/auth/agent-login",
+        payload: { token: agentToken },
+      });
+      expect(agent.statusCode).toBe(200);
+      expect(agent.json().data.profileId).toBe("default");
     } finally {
       await app.close();
       runtime.close();

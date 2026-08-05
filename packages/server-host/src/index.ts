@@ -35,3 +35,5 @@ export { registerModule } from "./module-loader.js";
 
 export { registerAdminMirrorApi } from "./admin-mirror.js";
 export type { AdminMirrorDeps } from "./admin-mirror.js";
+
+export { createPersistentSessionStore } from "./session-store.js";

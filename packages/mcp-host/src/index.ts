@@ -33,3 +33,9 @@ export type {
   ErrorObject,
   ParsedMessage,
 } from "./protocol.js";
+
+export { verifyAgentToken } from "./agent-auth.js";
+export type {
+  VerifyAgentTokenOptions,
+  AgentTokenVerification,
+} from "./agent-auth.js";
