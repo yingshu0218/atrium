@@ -45,11 +45,21 @@ export function AuthProvider({ apiClient, children }: AuthProviderProps) {
   useEffect(() => {
     let cancelled = false;
     client
-      .get<{ profileId: string }>("/api/core/auth/me")
+      .get<{ authenticated: boolean; profileId: string | null }>(
+        "/api/core/auth/me",
+      )
       .then(
         (result) => {
           if (!cancelled) {
-            setState({ status: "authenticated", profileId: result.profileId });
+            // me 总是 200,以 authenticated 字段表达登录态(PRD §15)。
+            if (result.authenticated) {
+              setState({
+                status: "authenticated",
+                profileId: result.profileId,
+              });
+            } else {
+              setState({ status: "anonymous", profileId: null });
+            }
           }
         },
         () => {
@@ -95,7 +105,7 @@ export function AuthProvider({ apiClient, children }: AuthProviderProps) {
     async (password: string) => {
       try {
         const result = await client.post<{ verified: boolean }>(
-          "/api/core/auth/challenge-admin",
+          "/api/core/auth/admin-challenge",
           { password }
         );
         return result.verified;

@@ -48,7 +48,10 @@ function isDataEnvelope(payload: unknown): payload is { data: unknown } {
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("content-type", "application/json");
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  // 拼接 API base 与路径;模块根路径 "/" 不应产生尾斜杠
+  // (宿主按 /api/m/{moduleId} 注册根路由)。
+  const url = `${API_BASE}${path}`.replace(/\/$/, "");
+  const response = await fetch(url, { ...init, headers });
   let payload: unknown;
   try {
     payload = (await response.json()) as unknown;

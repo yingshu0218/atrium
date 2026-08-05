@@ -29,11 +29,13 @@ function jsonResponse(payload: unknown, status = 200): Response {
   });
 }
 
-/** 默认 auth mock:me / login / logout / challenge-admin 全部成功。 */
+/** 默认 auth mock:me / login / logout / admin-challenge 全部成功。 */
 function authFetch(input: RequestInfo | URL): Promise<Response> {
   const url = String(input);
   if (url.endsWith("/api/core/auth/me")) {
-    return Promise.resolve(jsonResponse({ data: { profileId: "profile-1" } }));
+    return Promise.resolve(
+      jsonResponse({ data: { authenticated: true, profileId: "profile-1" } })
+    );
   }
   if (url.endsWith("/api/core/auth/login")) {
     return Promise.resolve(jsonResponse({ data: { profileId: "profile-1" } }));
@@ -41,7 +43,7 @@ function authFetch(input: RequestInfo | URL): Promise<Response> {
   if (url.endsWith("/api/core/auth/logout")) {
     return Promise.resolve(jsonResponse({ data: null }));
   }
-  if (url.endsWith("/api/core/auth/challenge-admin")) {
+  if (url.endsWith("/api/core/auth/admin-challenge")) {
     return Promise.resolve(jsonResponse({ data: { verified: true } }));
   }
   return Promise.resolve(
@@ -159,6 +161,23 @@ describe("createWebApp", () => {
     expect(await screen.findByLabelText("密码")).toBeTruthy();
     expect(screen.getByRole("button", { name: "登录" })).toBeTruthy();
     expect(screen.queryByText("便签")).toBeNull();
+  });
+
+  it("me 返回 authenticated:false 时视为未认证,显示登录页(PRD §15)", async () => {
+    // me 总是 200,以 authenticated 字段表达登录态;此前实现只看 profileId 导致误判已登录。
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/core/auth/me")) {
+        return jsonResponse({
+          data: { authenticated: false, profileId: null },
+        });
+      }
+      return jsonResponse({ error: { code: "not_found", message: "未找到" } }, 404);
+    });
+    render(<App />);
+    expect(await screen.findByLabelText("密码")).toBeTruthy();
+    expect(screen.queryByText("便签")).toBeNull();
+    expect(screen.queryByText("首页")).toBeNull();
   });
 
   it("登录后显示外壳与模块菜单", async () => {

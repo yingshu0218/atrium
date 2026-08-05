@@ -70,7 +70,7 @@ describe("NotesListPage", () => {
     expect(screen.getByText("置顶便签")).toBeTruthy();
     expect(screen.getByText("新建便签")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/m/notes/"),
+      expect.stringContaining("/api/m/notes"),
       expect.anything(),
     );
   });
@@ -127,7 +127,7 @@ describe("NotesEditPage", () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/m/notes/",
+        "/api/m/notes",
         expect.objectContaining({ method: "POST" }),
       );
     });
