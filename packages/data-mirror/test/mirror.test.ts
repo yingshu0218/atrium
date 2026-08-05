@@ -228,8 +228,7 @@ describe("data mirror engine", () => {
     expect(gitLog(harness.remote)).toEqual([]);
   });
 
-  it("PAT 不进入错误消息(脱敏)", async () => {
-    const harness = setupHarness();
+  it("PAT 不进入错误消息(脱敏)", async () => {    const harness = setupHarness();
     await createNote(harness.runtime, "第一条", "正文");
     await enableConfig(harness, {
       repoUrl: "https://user:super-secret-pat@invalid.example/repo.git",
@@ -348,5 +347,23 @@ describe("data mirror scheduler", () => {
     current = new Date("2026-01-02T01:00:00Z");
     await scheduler.tick();
     expect(runs).toBe(2);
+  });
+});
+
+describe("data mirror 任务锁", () => {
+  it("并发 runOnce 只执行一个,第二个返回 skipped(PRD §25:任务锁阻止并发 Mirror Run)", async () => {
+    const harness = setupHarness();
+    await createNote(harness.runtime, "并发测试", "正文");
+    await enableConfig(harness);
+
+    // 同时触发两次(不 await),engine 的进程内互斥应保证只有一个真正执行。
+    const [first, second] = await Promise.all([
+      harness.engine.runOnce(),
+      harness.engine.runOnce(),
+    ]);
+
+    const statuses = [first.status, second.status].sort();
+    expect(statuses).toEqual(["skipped", "success"]);
+    expect(gitLog(harness.remote)).toHaveLength(1);
   });
 });
