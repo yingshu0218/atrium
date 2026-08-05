@@ -19,3 +19,6 @@ coverage/
 
 # OS
 .DS_Store
+
+# 临时测试运行目录(可随时删除回滚)
+.test-run/

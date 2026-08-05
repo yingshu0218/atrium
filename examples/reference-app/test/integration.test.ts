@@ -210,8 +210,7 @@ describe("reference app 端到端", () => {
     expect(challenge.json()).toEqual({ data: { verified: true } });
   });
 
-  it("数据镜像:管理员配置 → 创建便签 → 推送 → 远端可读", async () => {
-    const { app } = await setup();
+  it("数据镜像:管理员配置 → 创建便签 → 推送 → 远端可读", async () => {    const { app } = await setup();
     // 本地裸仓库模拟远端。
     const root = mkdtempSync(join(tmpdir(), "atrium-ref-remote-"));
     tempDirs.push(root);
@@ -283,5 +282,42 @@ describe("reference app 端到端", () => {
       payload: {},
     });
     expect(runAgain.json().data.commitCount).toBe(0);
+  });
+
+  it("模块未启用时,routes/search/capture/resources/agent 全部不可用", async () => {
+    // 应用只注册启用模块(PRD §25:模块可选启用和禁用;禁用后能力消失)。
+    const server = await buildReferenceServer({ modules: [] });
+    ctx = server;
+    const { app, runtime } = server;
+
+    const cookie = await login(app);
+
+    // 路由不存在:模块未注册。
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/m/notes",
+      headers: { cookie },
+    });
+    expect(res.statusCode).toBe(404);
+
+    // 搜索 provider 未注册:聚合结果为空。
+    const hits = await runtime.search.search("default", "anything");
+    expect(hits).toEqual([]);
+
+    // capture handler 未注册:抛错。
+    await expect(
+      runtime.capture.capture("default", { text: "快速记录" }),
+    ).rejects.toThrow();
+
+    // 资源注册表为空。
+    expect(runtime.resources.all()).toEqual([]);
+
+    // Agent 资源目录为空。
+    const agent = new AgentService({
+      runtime,
+      modules: [],
+      profileId: "default",
+    });
+    expect(await agent.describe()).toEqual([]);
   });
 });
