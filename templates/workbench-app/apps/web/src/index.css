@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Tailwind v4 默认忽略 node_modules,而 Atrium 的 ui/web/模块包通过
+   @atrium/* 依赖安装(同样位于 node_modules)。必须显式把包内已编译产物
+   纳入扫描,否则这些包的 Tailwind 类不会被编译(页面无样式)。
+   注意:发布后扫描的是 node_modules/@atrium/*/dist 下的 JS/CSS;
+   引导阶段使用 workspace 源码时,改为指向对应源码目录。 */
+@source "../../node_modules/@atrium/ui/dist";
+@source "../../node_modules/@atrium/web-host/dist";
+@source "../../node_modules/@atrium/notes/dist";
+
 :root {
   color-scheme: light dark;
 }

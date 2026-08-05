@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
-/* 主题 CSS 变量由 web-host 的 ThemeProvider 注入 documentElement。
-   这里声明 color-scheme,让默认主题的 light-dark() 色值按系统偏好生效。 */
+/* Tailwind v4 默认忽略 node_modules;而 Atrium 的 ui/web/模块包在 workspace
+   中恰好位于 node_modules/@atrium/*(symlink)。必须显式把源码纳入扫描,
+   否则这些包的 Tailwind 类不会被编译(页面无样式)。 */
+@source "../../../packages/ui/src";
+@source "../../../packages/web-host/src";
+@source "../../../modules/notes/src";
+
 :root {
   color-scheme: light dark;
 }
