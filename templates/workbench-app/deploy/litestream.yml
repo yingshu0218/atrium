@@ -1,0 +1,10 @@
+# Litestream 备份配置:把 SQLite 持续复制到远程(私有对象存储 / SSH)。
+# 替换 repo 为你的远端(文档:https://litestream.io/guides/)
+dbs:
+  - path: /data/workbench.sqlite
+    replicas:
+      - type: s3
+        bucket: your-private-bucket
+        path: workbench
+        # 凭据通过环境变量 LITESTREAM_ACCESS_KEY_ID / LITESTREAM_SECRET_ACCESS_KEY 注入
+        region: your-region

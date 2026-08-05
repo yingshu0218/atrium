@@ -1,0 +1,5 @@
+# Caddy 反代(把 ATRIUM_DOMAIN 替换为你的域名)。
+# 生产必须启用 HTTPS(默认自动);ATRIUM_COOKIE_SECURE 设为 true。
+ATRIUM_DOMAIN {
+    reverse_proxy server:3000
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@workbench/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@atrium/contracts": "0.1.0",
+    "@atrium/core": "0.1.0",
+    "@atrium/data-mirror": "0.1.0",
+    "@atrium/notes": "0.1.0",
+    "@atrium/server-host": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.10.0"
+  }
+}
